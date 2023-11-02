@@ -52,42 +52,45 @@ class BranchAndBoundBinary:
         return index
     
     def resolver_modelo(self):
-        if len(self.is_integer(self.solucao)) == 0:
+        # verifica se a solução é inteira
+        solucao = [x.x for x in self.modelo_geral.vars]
+        if len(self.__is_integer(solucao)) == 0:
             print('Solução inteira')
             print('Solução: ', self.solucao)
-            return self.solucao
-        self.limite_superior = self.model.objective_value()
-        modelo = self.modelo_geral
-        solucao = []
-        while True:
-            p1, p2 = self.sub_problema(modelo)
-            if p1.objective_value() > p2.objective_value():
-                modelo = p1
-                solucao = []
-                for v in modelo.vars:
-                    solucao.append(v.x)
-            else:
-                solucao = []
-                modelo = p2
-                for v in modelo.vars:
-                    solucao.append(v.x)
-            if len(self.is_integer(solucao)) == 0:
+        # Define o limite superior
+        self.limite_superior = self.modelo_geral.objective_value
+        self.fila.append([self.modelo_geral, solucao])
+        while self.fila:
+            modelo = self.fila.pop(0)
+            # verifica se a solução é inteira
+            print(modelo[0])
+            input()
+            if len(self.__is_integer(modelo[1])) == 0:
                 print('Solução inteira')
-                print('Solução: ', solucao)
-                return solucao
+                print('Solução: ', modelo[1])
+            # se não for inteira, ramifica
+            else:
+                p1, p2 = self.sub_problema(modelo[0])
+                self.fila.append(p1)
+                self.fila.append(p2)
     
     def sub_problema(self, modelo):
         # cria uma copia do modelo
-        modelo_p1 = self.model
-        modelo_p2 = self.model
+        modelo_p1 = modelo.copy()
+        modelo_p2 = modelo.copy()
+        # variavel a ser ramificada
+        var = [x for x in modelo.vars]
+        var_values = [x.x for x in modelo.vars]
+        indice_variavel_ramificar = self.__var_ramification(var_values)
         # adiciona a restrição de ramificação
-        modelo_p1 += self.x[variavel_ramificar] <= inferior
-        modelo_p2 += self.x[variavel_ramificar] >= superior
+        modelo_p1 += var[indice_variavel_ramificar] <= 0
+        modelo_p2 += var[indice_variavel_ramificar] >= 1
         # resolve o modelo
-        modelo_p1.optimize()
-        modelo_p2.optimize()
+        solucao_p1 = modelo_p1.optimize()
+        solucao_p2 = modelo_p2.optimize()
 
-        return modelo_p1, modelo_p2
+
+        return [modelo_p1, solucao_p1], [modelo_p2, solucao_p2]
 
         
         
@@ -96,6 +99,7 @@ class BranchAndBoundBinary:
 
 
 teste = BranchAndBoundBinary('teste1.txt')
+teste.resolver_modelo()
 
 
         
